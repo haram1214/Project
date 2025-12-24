@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>계산기</title>
+    <title>바카라 통계 분석 엔진</title>
     <style>
         :root { --p: #007bff; --b: #dc3545; --t: #28a745; --border: #333; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
+
         .top-bar { background: #111; padding: 5px 15px; font-size: 11px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); align-items: center; }
         .setting-area { background: #111; border-bottom: 2px solid var(--border); padding: 8px; }
         .setting-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; font-size: 12px; }
@@ -15,38 +16,39 @@
         .key-box.waiting { border-color: #ffcc00; background: #443300; animation: blink 1s infinite; }
         @keyframes blink { 50% { opacity: 0.5; } }
 
+
         .prob-row { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; font-weight: bold; padding-bottom: 5px; }
 
-        .board-wrapper { background: #fff; height: 156px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--border); position: relative; }
-        .main-road { display: grid; grid-template-columns: repeat(150, 26px); grid-template-rows: repeat(6, 26px); width: max-content; }
-        .cell { width: 26px; height: 26px; border: 0.1px solid #eee; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; }
+
+        .board-wrapper { background: #fff; height: 160px; overflow-x: auto; overflow-y: hidden; border-bottom: 2px solid var(--border); position: relative; }
+        .main-road { display: grid; grid-template-columns: repeat(1000, 26px); grid-template-rows: repeat(6, 26.6px); width: max-content; gap: 0; }
+        .cell { width: 26px; height: 26.6px; border: 0.1px solid #f0f0f0; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; background: #fff; }
         
-        .circle { width: 21px; height: 21px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        .circle { width: 23px; height: 23px; border-radius: 50%; border: 2.5px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; z-index: 1; }
         .p-circle { border-color: var(--p); color: var(--p); }
         .b-circle { border-color: var(--b); color: var(--b); }
-        .t-circle { border-color: var(--t); color: var(--t); background: #e8f5e9; }
+        .t-slash { position: absolute; color: var(--t); font-size: 22px; font-weight: 900; transform: rotate(20deg); z-index: 2; text-shadow: 1px 1px 0px #fff; }
+        .t-text { color: var(--t); font-weight: 900; }
 
         .analysis-zone { flex: 1; display: flex; align-items: center; justify-content: space-evenly; background: #0a0a0a; padding: 10px; }
-        .main-signal { width: 130px; height: 130px; border-radius: 50%; border: 10px solid #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #333; transition: 0.3s; }
+        .main-signal { width: 140px; height: 140px; border-radius: 50%; border: 8px solid #1a1a1a; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #444; transition: 0.3s; text-align: center; }
+        .sig-sub { font-size: 11px; font-weight: normal; margin-top: 5px; color: #666; }
         
-        .score-board { font-size: 13px; color: #aaa; line-height: 1.8; }
-        .score-row { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid #222; padding: 2px 0; }
-        .val-p { color: var(--p); font-weight: bold; }
-        .val-b { color: var(--b); font-weight: bold; }
+        .score-board { font-size: 13px; color: #aaa; min-width: 140px; }
+        .score-row { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 3px 0; }
 
-        .footer-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 75px; }
-        button { border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .footer-btns { display: grid; grid-template-columns: 1fr 0.6fr 1fr; height: 85px; }
+        button { border: none; color: white; font-size: 20px; font-weight: bold; cursor: pointer; }
         .btn-p { background: var(--p); }
         .btn-t { background: var(--t); }
         .btn-b { background: var(--b); }
-        .reset-btn { background: none; border: 1px solid #444; color: #666; font-size: 10px; padding: 2px 6px; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <span>상태 : 🟢 | 접속 IP : <span id="user-ip">LOADING...</span></span>
-        <button class="reset-btn" onclick="location.reload()">데이터 초기화</button>
+        <span>상태 : 🟢 | <span id="user-ip">IP LOADING...</span></span>
+        <button onclick="location.reload()" style="background:none; border:1px solid #444; color:#666; font-size:10px; cursor:pointer;">데이터 초기화</button>
     </div>
 
     <div class="setting-area">
@@ -56,24 +58,26 @@
             <div>T: <span id="key-T" class="key-box" onclick="listenKey('T')">3</span></div>
         </div>
         <div class="prob-row">
-            <div style="color:var(--p)">PLAYER<span id="p-rate">44.6%</span></div>
-            <div style="color:var(--b)">BANKER<span id="b-rate">45.8%</span></div>
-            <div style="color:var(--t)">TIE<span id="t-rate">9.6%</span></div>
+            <div style="color:var(--p)">P <span id="p-rate">44.6%</span></div>
+            <div style="color:var(--b)">B <span id="b-rate">45.8%</span></div>
+            <div style="color:var(--t)">T <span id="t-rate">9.6%</span></div>
         </div>
     </div>
 
-    <div class="board-wrapper" id="scroll-target">
+    <div class="board-wrapper" id="scroll-box">
         <div class="main-road" id="road-grid"></div>
     </div>
 
     <div class="analysis-zone">
-        <div id="big-sig" class="main-signal">READY</div>
+        <div id="big-sig" class="main-signal">
+            <div id="sig-text">READY</div>
+            <div id="sig-reason" class="sig-sub">데이터 수집 중</div>
+        </div>
         <div class="score-board">
-            <div style="text-align:center; font-weight:bold; color:#ffcc00; margin-bottom:5px;">REALTIME STATS</div>
-            <div class="score-row"><span>P</span><span id="cnt-p" class="val-p">0</span></div>
-            <div class="score-row"><span>B</span><span id="cnt-b" class="val-b">0</span></div>
-            <div class="score-row"><span>T</span><span id="cnt-t" style="color:var(--t)">0</span></div>
-            <div class="score-row"><span>횟수</span><span id="stage-info" style="color:#fff">1</span></div>
+            <div class="score-row"><span>PLAYER</span><span id="cnt-p" style="color:var(--p)">0</span></div>
+            <div class="score-row"><span>BANKER</span><span id="cnt-b" style="color:var(--b)">0</span></div>
+            <div class="score-row"><span>TIE</span><span id="cnt-t" style="color:var(--t)">0</span></div>
+            <div class="score-row"><span>패턴 신뢰도</span><span id="ai-conf" style="color:#ffcc00">0%</span></div>
         </div>
     </div>
 
@@ -85,24 +89,20 @@
 
 <script>
     let history = [];
-    let grid = Array.from({length: 6}, () => Array(150).fill(null));
-    let lastSide = null, headCol = -1, curRow = 0, curCol = 0;
+    let grid = Array.from({length: 6}, () => Array(1000).fill(null));
+    let lastSide = null, curCol = 0, curRow = -1;
     let keySettings = { '1': 'P', '2': 'B', '3': 'T' };
     let settingTarget = null;
 
-    fetch('https://api.ipify.org?format=json')
-        .then(res => res.json())
-        .then(data => document.getElementById('user-ip').innerText = data.ip)
-        .catch(() => document.getElementById('user-ip').innerText = "DISCONNECTED");
+    fetch('https://api.ipify.org?format=json').then(res => res.json()).then(data => document.getElementById('user-ip').innerText = data.ip);
 
     const roadGrid = document.getElementById('road-grid');
-    for(let r=0; r<6; r++) for(let c=0; c<150; c++) roadGrid.innerHTML += `<div class="cell" id="cell-${r}-${c}"></div>`;
+    for(let r=0; r<6; r++) for(let c=0; c<1000; c++) roadGrid.innerHTML += `<div class="cell" id="cell-${r}-${c}"></div>`;
 
     function listenKey(type) {
         settingTarget = type;
         document.querySelectorAll('.key-box').forEach(el => el.classList.remove('waiting'));
         document.getElementById(`key-${type}`).classList.add('waiting');
-        document.getElementById(`key-${type}`).innerText = "...";
     }
 
     window.addEventListener('keydown', (e) => {
@@ -110,9 +110,8 @@
         if (settingTarget) {
             for (let k in keySettings) if (keySettings[k] === settingTarget) delete keySettings[k];
             keySettings[key] = settingTarget;
-            const targetEl = document.getElementById(`key-${settingTarget}`);
-            targetEl.innerText = key;
-            targetEl.classList.remove('waiting');
+            document.getElementById(`key-${settingTarget}`).innerText = key;
+            document.getElementById(`key-${settingTarget}`).classList.remove('waiting');
             settingTarget = null;
             return;
         }
@@ -120,57 +119,74 @@
     });
 
     function add(type) {
-        if (type !== 'T' && type !== lastSide) {
-            headCol++; curCol = headCol; curRow = 0;
-        } else if (type !== 'T') {
-            if (curRow + 1 < 6 && !grid[curRow + 1][curCol]) curRow++; else curCol++;
-        } else if (type === 'T' && history.length === 0) {
-            headCol = 0; curCol = 0; curRow = 0;
+        if (type === 'T') {
+            const r = curRow === -1 ? 0 : curRow;
+            const targetCell = document.getElementById(`cell-${r}-${curCol}`);
+            if (grid[r][curCol] === null) targetCell.innerHTML = `<span class="t-text">T</span>`;
+            else if (!targetCell.innerHTML.includes('t-slash')) targetCell.innerHTML += `<span class="t-slash">/</span>`;
+        } else {
+            if (type !== lastSide) {
+                if (lastSide !== null) curCol++;
+                curRow = 0;
+            } else {
+                if (curRow < 5 && !grid[curRow + 1][curCol]) curRow++; else curCol++;
+            }
+            grid[curRow][curCol] = type;
+            document.getElementById(`cell-${curRow}-${curCol}`).innerHTML = `<div class="circle ${type==='P'?'p-circle':'b-circle'}">${type}</div>`;
+            lastSide = type;
         }
-        
-        if (type !== 'T') grid[curRow][curCol] = type;
-        const cell = document.getElementById(`cell-${curRow}-${curCol}`);
-        cell.innerHTML = type === 'T' ? `<div class="circle t-circle">T</div>` : `<div class="circle ${type==='P'?'p-circle':'b-circle'}">${type}</div>`;
-        
-        if (type !== 'T') lastSide = type;
         history.push(type);
-        updateUI();
-
-        
+        document.getElementById('scroll-box').scrollLeft = (curCol * 26) - 150;
+        updateEngine();
     }
 
-    function updateUI() {
+    function updateEngine() {
         const total = history.length;
-        const pCount = history.filter(v => v === 'P').length;
-        const bCount = history.filter(v => v === 'B').length;
+        const filtered = history.filter(v => v !== 'T');
+        const pCount = filtered.filter(v => v === 'P').length;
+        const bCount = filtered.filter(v => v === 'B').length;
         const tCount = history.filter(v => v === 'T').length;
 
-        const pR = total === 0 ? 44.6 : (pCount / total * 100).toFixed(1);
-        const bR = total === 0 ? 45.8 : (bCount / total * 100).toFixed(1);
-        const tR = total === 0 ? 9.6 : (tCount / total * 100).toFixed(1);
 
-        document.getElementById('p-rate').innerText = pR + "%";
-        document.getElementById('b-rate').innerText = bR + "%";
-        document.getElementById('t-rate').innerText = tR + "%";
+        const w = 30;
+        let pP = (pCount + (w * 0.446)) / (filtered.length + w);
+        let bP = (bCount + (w * 0.458)) / (filtered.length + w);
+        let tP = (tCount + (total * 0.096)) / (total + 10);
+        const sum = pP + bP + tP;
         
+        const pRate = (pP / sum * 100).toFixed(1);
+        const bRate = (bP / sum * 100).toFixed(1);
+        const tRate = (tP / sum * 100).toFixed(1);
+
+        document.getElementById('p-rate').innerText = pRate + "%";
+        document.getElementById('b-rate').innerText = bRate + "%";
+        document.getElementById('t-rate').innerText = tRate + "%";
         document.getElementById('cnt-p').innerText = pCount;
         document.getElementById('cnt-b').innerText = bCount;
         document.getElementById('cnt-t').innerText = tCount;
-        document.getElementById('stage-info').innerText = total + 1;
 
-        const sig = document.getElementById('big-sig');
-        if (total >= 5) {
-            if (parseFloat(pR) > 52) {
-                sig.innerText = "BANKER";
-                sig.style.color = "var(--b)"; sig.style.borderColor = "var(--b)";
-            } else if (parseFloat(bR) > 53) {
-                sig.innerText = "PLAYER";
-                sig.style.color = "var(--p)"; sig.style.borderColor = "var(--p)";
-            } else {
-                sig.innerText = "WAIT";
-                sig.style.color = "#333"; sig.style.borderColor = "#1a1a1a";
-            }
+        const diff = pCount - bCount;
+        const recent = filtered.slice(-6).join('');
+        let sig = "WAIT", res = "관망", conf = 0;
+
+        if (total < 10) {
+            res = "데이터 수집 중";
+        } else if (Math.abs(diff) >= 6) {
+            sig = diff > 0 ? "BANKER" : "PLAYER";
+            res = "불균형 해소(역베팅)";
+            conf = Math.min(90, 60 + (Math.abs(diff) * 3));
+        } else if (recent.includes('PBPB') || recent.includes('BPBP')) {
+            sig = filtered[filtered.length-1] === 'P' ? "BANKER" : "PLAYER";
+            res = "교차 패턴 감지";
+            conf = 70;
         }
+
+        const box = document.getElementById('big-sig');
+        document.getElementById('sig-text').innerText = sig;
+        document.getElementById('sig-reason').innerText = res;
+        document.getElementById('ai-conf').innerText = conf + "%";
+        box.style.color = sig === "PLAYER" ? "var(--p)" : (sig === "BANKER" ? "var(--b)" : "#444");
+        box.style.borderColor = sig === "WAIT" ? "#1a1a1a" : (sig === "PLAYER" ? "var(--p)" : "var(--b)");
     }
 </script>
 </body>
