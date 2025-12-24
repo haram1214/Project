@@ -8,7 +8,7 @@
         :root { --p: #007bff; --b: #dc3545; --t: #28a745; --border: #333; }
         body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
         
-        .top-bar { background: #111; padding: 5px 15px; font-size: 11px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .top-bar { background: #111; padding: 5px 15px; font-size: 11px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); align-items: center; }
         .setting-area { background: #111; border-bottom: 2px solid var(--border); padding: 8px; }
         .setting-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; font-size: 12px; }
         .key-box { background: #222; border: 1px solid #555; padding: 3px 8px; border-radius: 4px; cursor: pointer; color: #ffcc00; min-width: 35px; text-align: center; font-weight: bold; }
@@ -16,13 +16,12 @@
         @keyframes blink { 50% { opacity: 0.5; } }
 
         .prob-row { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; font-weight: bold; padding-bottom: 5px; }
-        .prob-item { font-size: 10px; opacity: 0.7; }
-        .prob-item span { display: block; font-size: 18px; opacity: 1; margin-top: 2px; }
 
-        .board-wrapper { background: #fff; height: 150px; overflow-x: auto; border-bottom: 1px solid var(--border); }
-        .main-road { display: grid; grid-template-columns: repeat(100, 25px); grid-template-rows: repeat(6, 25px); width: max-content; }
-        .cell { width: 25px; height: 25px; border: 0.1px solid #eee; display: flex; align-items: center; justify-content: center; position: relative; }
-        .circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        .board-wrapper { background: #fff; height: 156px; overflow-x: auto; overflow-y: hidden; border-bottom: 1px solid var(--border); position: relative; }
+        .main-road { display: grid; grid-template-columns: repeat(150, 26px); grid-template-rows: repeat(6, 26px); width: max-content; }
+        .cell { width: 26px; height: 26px; border: 0.1px solid #eee; display: flex; align-items: center; justify-content: center; position: relative; box-sizing: border-box; }
+        
+        .circle { width: 21px; height: 21px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
         .p-circle { border-color: var(--p); color: var(--p); }
         .b-circle { border-color: var(--b); color: var(--b); }
         .t-circle { border-color: var(--t); color: var(--t); background: #e8f5e9; }
@@ -40,15 +39,13 @@
         .btn-p { background: var(--p); }
         .btn-t { background: var(--t); }
         .btn-b { background: var(--b); }
-        .reset-btn { background: none; border: 1px solid #444; color: #666; font-size: 10px; padding: 2px 6px; cursor: pointer; }
+        .reset-btn { background: none; border: 1px solid #444; color: #666; font-size: 10px; padding: 2px 6px; cursor: pointer; border-radius: 4px; }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <body>
-            상태 : 🟢
-        </body><span>접속 아이피 : <span id="user-ip">LOADING...</span></span>
+        <span>상태 : 🟢 | 접속 IP : <span id="user-ip">LOADING...</span></span>
         <button class="reset-btn" onclick="location.reload()">데이터 초기화</button>
     </div>
 
@@ -88,20 +85,18 @@
 
 <script>
     let history = [];
-    let grid = Array.from({length: 6}, () => Array(100).fill(null));
+    let grid = Array.from({length: 6}, () => Array(150).fill(null));
     let lastSide = null, headCol = -1, curRow = 0, curCol = 0;
     let keySettings = { '1': 'P', '2': 'B', '3': 'T' };
     let settingTarget = null;
-
 
     fetch('https://api.ipify.org?format=json')
         .then(res => res.json())
         .then(data => document.getElementById('user-ip').innerText = data.ip)
         .catch(() => document.getElementById('user-ip').innerText = "DISCONNECTED");
 
-
     const roadGrid = document.getElementById('road-grid');
-    for(let r=0; r<6; r++) for(let c=0; c<100; c++) roadGrid.innerHTML += `<div class="cell" id="cell-${r}-${c}"></div>`;
+    for(let r=0; r<6; r++) for(let c=0; c<150; c++) roadGrid.innerHTML += `<div class="cell" id="cell-${r}-${c}"></div>`;
 
     function listenKey(type) {
         settingTarget = type;
@@ -140,7 +135,8 @@
         if (type !== 'T') lastSide = type;
         history.push(type);
         updateUI();
-        document.getElementById('scroll-target').scrollLeft = 99999;
+
+        
     }
 
     function updateUI() {
