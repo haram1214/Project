@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>계산기</title>
+    <style>
+        :root { --p: #007bff; --b: #dc3545; --t: #28a745; --border: #333; }
+        body { margin: 0; background: #000; color: #fff; font-family: sans-serif; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        
+        .top-bar { background: #111; padding: 5px 15px; font-size: 11px; color: #666; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border); }
+        .setting-area { background: #111; border-bottom: 2px solid var(--border); padding: 8px; }
+        .setting-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 8px; font-size: 12px; }
+        .key-box { background: #222; border: 1px solid #555; padding: 3px 8px; border-radius: 4px; cursor: pointer; color: #ffcc00; min-width: 35px; text-align: center; font-weight: bold; }
+        .key-box.waiting { border-color: #ffcc00; background: #443300; animation: blink 1s infinite; }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        .prob-row { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; font-weight: bold; padding-bottom: 5px; }
+        .prob-item { font-size: 10px; opacity: 0.7; }
+        .prob-item span { display: block; font-size: 18px; opacity: 1; margin-top: 2px; }
+
+        .board-wrapper { background: #fff; height: 150px; overflow-x: auto; border-bottom: 1px solid var(--border); }
+        .main-road { display: grid; grid-template-columns: repeat(100, 25px); grid-template-rows: repeat(6, 25px); width: max-content; }
+        .cell { width: 25px; height: 25px; border: 0.1px solid #eee; display: flex; align-items: center; justify-content: center; position: relative; }
+        .circle { width: 20px; height: 20px; border-radius: 50%; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: bold; }
+        .p-circle { border-color: var(--p); color: var(--p); }
+        .b-circle { border-color: var(--b); color: var(--b); }
+        .t-circle { border-color: var(--t); color: var(--t); background: #e8f5e9; }
+
+        .analysis-zone { flex: 1; display: flex; align-items: center; justify-content: space-evenly; background: #0a0a0a; padding: 10px; }
+        .main-signal { width: 130px; height: 130px; border-radius: 50%; border: 10px solid #1a1a1a; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 900; color: #333; transition: 0.3s; }
+        
+        .score-board { font-size: 13px; color: #aaa; line-height: 1.8; }
+        .score-row { display: flex; justify-content: space-between; gap: 20px; border-bottom: 1px solid #222; padding: 2px 0; }
+        .val-p { color: var(--p); font-weight: bold; }
+        .val-b { color: var(--b); font-weight: bold; }
+
+        .footer-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; height: 75px; }
+        button { border: none; color: white; font-size: 18px; font-weight: bold; cursor: pointer; }
+        .btn-p { background: var(--p); }
+        .btn-t { background: var(--t); }
+        .btn-b { background: var(--b); }
+        .reset-btn { background: none; border: 1px solid #444; color: #666; font-size: 10px; padding: 2px 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <body>
+            상태 : 🟢
+        </body><span>접속 아이피 : <span id="user-ip">LOADING...</span></span>
+        <button class="reset-btn" onclick="location.reload()">데이터 초기화</button>
+    </div>
+
+    <div class="setting-area">
+        <div class="setting-row">
+            <div>P: <span id="key-P" class="key-box" onclick="listenKey('P')">1</span></div>
+            <div>B: <span id="key-B" class="key-box" onclick="listenKey('B')">2</span></div>
+            <div>T: <span id="key-T" class="key-box" onclick="listenKey('T')">3</span></div>
+        </div>
+        <div class="prob-row">
+            <div style="color:var(--p)">PLAYER<span id="p-rate">44.6%</span></div>
+            <div style="color:var(--b)">BANKER<span id="b-rate">45.8%</span></div>
+            <div style="color:var(--t)">TIE<span id="t-rate">9.6%</span></div>
+        </div>
+    </div>
+
+    <div class="board-wrapper" id="scroll-target">
+        <div class="main-road" id="road-grid"></div>
+    </div>
+
+    <div class="analysis-zone">
+        <div id="big-sig" class="main-signal">READY</div>
+        <div class="score-board">
+            <div style="text-align:center; font-weight:bold; color:#ffcc00; margin-bottom:5px;">REALTIME STATS</div>
+            <div class="score-row"><span>P</span><span id="cnt-p" class="val-p">0</span></div>
+            <div class="score-row"><span>B</span><span id="cnt-b" class="val-b">0</span></div>
+            <div class="score-row"><span>T</span><span id="cnt-t" style="color:var(--t)">0</span></div>
+            <div class="score-row"><span>횟수</span><span id="stage-info" style="color:#fff">1</span></div>
+        </div>
+    </div>
+
+    <div class="footer-btns">
+        <button class="btn-p" onclick="add('P')">PLAYER</button>
+        <button class="btn-t" onclick="add('T')">TIE</button>
+        <button class="btn-b" onclick="add('B')">BANKER</button>
+    </div>
+
+<script>
+    let history = [];
+    let grid = Array.from({length: 6}, () => Array(100).fill(null));
+    let lastSide = null, headCol = -1, curRow = 0, curCol = 0;
+    let keySettings = { '1': 'P', '2': 'B', '3': 'T' };
+    let settingTarget = null;
+
+
+    fetch('https://api.ipify.org?format=json')
+        .then(res => res.json())
+        .then(data => document.getElementById('user-ip').innerText = data.ip)
+        .catch(() => document.getElementById('user-ip').innerText = "DISCONNECTED");
+
+
+    const roadGrid = document.getElementById('road-grid');
+    for(let r=0; r<6; r++) for(let c=0; c<100; c++) roadGrid.innerHTML += `<div class="cell" id="cell-${r}-${c}"></div>`;
+
+    function listenKey(type) {
+        settingTarget = type;
+        document.querySelectorAll('.key-box').forEach(el => el.classList.remove('waiting'));
+        document.getElementById(`key-${type}`).classList.add('waiting');
+        document.getElementById(`key-${type}`).innerText = "...";
+    }
+
+    window.addEventListener('keydown', (e) => {
+        const key = e.key.toUpperCase();
+        if (settingTarget) {
+            for (let k in keySettings) if (keySettings[k] === settingTarget) delete keySettings[k];
+            keySettings[key] = settingTarget;
+            const targetEl = document.getElementById(`key-${settingTarget}`);
+            targetEl.innerText = key;
+            targetEl.classList.remove('waiting');
+            settingTarget = null;
+            return;
+        }
+        if (keySettings[key]) add(keySettings[key]);
+    });
+
+    function add(type) {
+        if (type !== 'T' && type !== lastSide) {
+            headCol++; curCol = headCol; curRow = 0;
+        } else if (type !== 'T') {
+            if (curRow + 1 < 6 && !grid[curRow + 1][curCol]) curRow++; else curCol++;
+        } else if (type === 'T' && history.length === 0) {
+            headCol = 0; curCol = 0; curRow = 0;
+        }
+        
+        if (type !== 'T') grid[curRow][curCol] = type;
+        const cell = document.getElementById(`cell-${curRow}-${curCol}`);
+        cell.innerHTML = type === 'T' ? `<div class="circle t-circle">T</div>` : `<div class="circle ${type==='P'?'p-circle':'b-circle'}">${type}</div>`;
+        
+        if (type !== 'T') lastSide = type;
+        history.push(type);
+        updateUI();
+        document.getElementById('scroll-target').scrollLeft = 99999;
+    }
+
+    function updateUI() {
+        const total = history.length;
+        const pCount = history.filter(v => v === 'P').length;
+        const bCount = history.filter(v => v === 'B').length;
+        const tCount = history.filter(v => v === 'T').length;
+
+        const pR = total === 0 ? 44.6 : (pCount / total * 100).toFixed(1);
+        const bR = total === 0 ? 45.8 : (bCount / total * 100).toFixed(1);
+        const tR = total === 0 ? 9.6 : (tCount / total * 100).toFixed(1);
+
+        document.getElementById('p-rate').innerText = pR + "%";
+        document.getElementById('b-rate').innerText = bR + "%";
+        document.getElementById('t-rate').innerText = tR + "%";
+        
+        document.getElementById('cnt-p').innerText = pCount;
+        document.getElementById('cnt-b').innerText = bCount;
+        document.getElementById('cnt-t').innerText = tCount;
+        document.getElementById('stage-info').innerText = total + 1;
+
+        const sig = document.getElementById('big-sig');
+        if (total >= 5) {
+            if (parseFloat(pR) > 52) {
+                sig.innerText = "BANKER";
+                sig.style.color = "var(--b)"; sig.style.borderColor = "var(--b)";
+            } else if (parseFloat(bR) > 53) {
+                sig.innerText = "PLAYER";
+                sig.style.color = "var(--p)"; sig.style.borderColor = "var(--p)";
+            } else {
+                sig.innerText = "WAIT";
+                sig.style.color = "#333"; sig.style.borderColor = "#1a1a1a";
+            }
+        }
+    }
+</script>
+</body>
+</html>
